@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Daily Briefing Agent{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-brain"></i>
+                    <h1>Daily Briefing Agent</h1>
+                    <span class="tagline">Professional Intelligence Platform</span>
+                </div>
+                {% block header_actions %}
+                <div class="header-actions">
+                    <button class="btn btn-outline" onclick="showHealthStatus()">
+                        <i class="fas fa-heartbeat"></i> System Status
+                    </button>
+                    <button class="btn btn-outline" onclick="showApiDocs()">
+                        <i class="fas fa-code"></i> API Docs
+                    </button>
+                </div>
+                {% endblock %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            {% block content %}
+            <!-- Content will be inserted here -->
+            {% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <p>&copy; 2025 Daily Briefing Agent. Professional Intelligence Platform.</p>
+                    <p>Powered by multi-agent AI architecture with weather, news, and synthesis capabilities.</p>
+                </div>
+                <div class="footer-links">
+                    <a href="/docs" target="_blank">API Documentation</a>
+                    <a href="/redoc" target="_blank">API Reference</a>
+                    <a href="#" onclick="showHealthStatus()">System Health</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    {% block scripts %}
+    <script src="{{ url_for('static', path='/js/briefing.js') }}"></script>
+    {% endblock %}
+</body>
+</html>

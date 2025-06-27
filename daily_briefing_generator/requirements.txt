@@ -1,0 +1,21 @@
+# Daily Briefing Generator Requirements
+
+# Core dependencies
+requests>=2.31.0
+python-dotenv>=1.0.0
+aiohttp>=3.12.0
+google-generativeai>=0.3.0
+
+# Optional: For enhanced functionality
+schedule>=1.2.0
+click>=8.1.0
+
+# Development dependencies (optional)
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0
+
+# For future enhancements
+# beautifulsoup4>=4.12.0  # For web scraping
+# pandas>=2.0.0          # For data analysis
+# matplotlib>=3.7.0      # For data visualization
