@@ -28,7 +28,7 @@ const API_CONFIG = {
         // 1. Deploy backend to Heroku, Railway, Render, etc.
         // 2. Use Netlify Functions, Vercel API Routes
         // 3. Use a serverless provider like AWS Lambda
-        baseUrl: 'https://your-api-domain.com',  // CHANGE THIS
+        baseUrl: 'https://multi-agent-orchestrator.onrender.com',  // Replace with your actual Render URL
         apiBase: '/api/v1'
     }
 };
