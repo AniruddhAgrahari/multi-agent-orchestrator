@@ -1,6 +1,10 @@
 # 🧠 Daily Briefing Agent
 
-> **An AI-powered multi-agent system delivering personalized daily briefings with weather, news, and insights.**
+> # Synoptic AI: Multi-Agent Orchestrator
+
+🤖 **Professional AI-powered briefing generation system** that orchestrates multiple intelligent agents to provide comprehensive daily briefings with weather data, news updates, and actionable insights.
+
+**Live Demo:** [https://AniruddhAgrahari.github.io/multi-agent-orchestrator/](https://AniruddhAgrahari.github.io/multi-agent-orchestrator/)
 
 [![Deploy to GitHub Pages](https://img.shields.io/badge/Deploy-GitHub%20Pages-blue?style=for-the-badge&logo=github)](https://github.com/your-username/daily-briefing-agent)
 [![API Documentation](https://img.shields.io/badge/API-Documentation-green?style=for-the-badge&logo=swagger)](https://your-api-domain.com/docs)
