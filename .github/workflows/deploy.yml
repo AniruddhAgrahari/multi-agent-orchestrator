@@ -1,9 +1,7 @@
-name: Deploy to GitHub Pages
+name: Deploy Frontend to GitHub Pages
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
     branches: [ main, master ]
 
 # Allow one concurrent deployment
@@ -22,11 +20,12 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
         
-      - name: Build with Jekyll
-        uses: actions/jekyll-build-pages@v1
-        with:
-          source: ./daily_briefing_generator/web_interface/frontend
-          destination: ./_site
+      - name: Copy frontend files
+        run: |
+          mkdir -p _site
+          cp -r daily_briefing_generator/web_interface/frontend/* _site/
+          cp .nojekyll _site/
+          ls -la _site/
           
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
