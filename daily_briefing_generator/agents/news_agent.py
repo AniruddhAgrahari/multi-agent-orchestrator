@@ -19,7 +19,8 @@ class NewsAgent:
         """
         Your second intelligent agent, Master Aniruddh!
         This agent specializes in curating and presenting news for your daily briefing.
-        """        # Configure Google AI Studio
+        """
+        # Configure Google AI Studio
         api_key = os.getenv("GOOGLE_AI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("Google AI API key not found. Please set GOOGLE_AI_API_KEY in your .env file")
@@ -28,7 +29,7 @@ class NewsAgent:
         
     async def get_news_briefing(self, user_request: str) -> str:
         """
-        Intelligent news curation following your best practices guide.
+        Enhanced news curation with robust fallback strategies.
         This agent understands context and filters content appropriately.
         """
         # Let AI analyze what kind of news the user wants
@@ -47,12 +48,13 @@ COUNTRY: [country code]
 COUNT: [number]
 KEYWORDS: [keywords, if any, else "None"]
 """
-
         
         try:
             # Get AI analysis
             response = await self.model.generate_content_async(analysis_prompt)
-            analysis = response.text            # Parse the analysis
+            analysis = response.text
+            
+            # Parse the analysis
             category = self._extract_value(analysis, "CATEGORY:") or "general"
             country = self._extract_value(analysis, "COUNTRY:")
             # Handle unspecified or invalid country codes
@@ -60,11 +62,7 @@ KEYWORDS: [keywords, if any, else "None"]
                 country = "us"  # Default to US
             count = int(self._extract_value(analysis, "COUNT:") or "5")
             
-            # Debug: Print what AI analyzed
-            print(f"DEBUG AI Analysis: category={category}, country={country}, count={count}")
-            print(f"DEBUG Analysis text: {analysis}")
-            
-            # Fetch news data using your tool
+            # Fetch news data using enhanced tool with fallbacks
             news_data = await get_news_data(
                 query=category,  # Use category as query
                 category=category,
@@ -72,43 +70,68 @@ KEYWORDS: [keywords, if any, else "None"]
                 max_articles=min(count, 10)  # Respect rate limits
             )
             
-            if "error" in news_data:
-                return f"Sorry, I couldn't fetch news: {news_data['error']}"
+            # Enhanced error handling
+            if news_data.get("status") == "error" or "error" in news_data:
+                error_msg = news_data.get("error", "Unknown error occurred")
+                # Try to provide a fallback response based on the request
+                fallback_response = await self._generate_fallback_response(user_request, category, country)
+                return fallback_response
             
-            # Debug: Print what we got
-            print(f"DEBUG: Got {news_data.get('total_results', 0)} articles")
-            print(f"DEBUG: Articles key exists: {'articles' in news_data}")
-            print(f"DEBUG: Articles count: {len(news_data.get('articles', []))}")
+            # Check if we have valid articles
+            articles = news_data.get("articles", [])
+            if not articles:
+                # Generate a meaningful response even without articles
+                fallback_response = await self._generate_fallback_response(user_request, category, country)
+                return fallback_response
             
-            if not news_data.get("articles"):
-                return "No recent news articles found for your request."
-                return "No recent news articles found for your request."
-            
-            # Let AI create a curated briefing
-            articles_summary = self._format_articles_for_ai(news_data["articles"])
+            # Let AI create a curated briefing with enhanced context
+            articles_summary = self._format_articles_for_ai(articles)
             
             briefing_prompt = f"""
-            Create a professional news briefing based on these articles:
-            
-            {articles_summary}
-            
-            User's original request: "{user_request}"
-            
-            Guidelines:
-            - Start with a brief overview
-            - Highlight the most important stories
-            - Keep it concise but informative
-            - Group related stories together
-            - End with a summary of key takeaways
-            
-            Make it sound like a professional news briefing.
-            """
+Create a professional news briefing based on these articles:
+
+{articles_summary}
+
+User's original request: "{user_request}"
+Request Context: Category={category}, Country={country}
+
+Guidelines:
+- Start with a brief overview mentioning the region/category focus
+- Highlight the most important stories with business implications
+- Keep it concise but informative
+- If articles seem limited, acknowledge this but focus on what's available
+- Group related stories together
+- End with key takeaways relevant to the user's location/interests
+
+Make it sound like a professional news briefing for {country.upper() if country else 'international'} audience.
+"""
             
             final_response = await self.model.generate_content_async(briefing_prompt)
             return final_response.text
             
         except Exception as e:
             return f"I encountered an error processing your news request: {str(e)}"
+    
+    async def _generate_fallback_response(self, user_request: str, category: str, country: str) -> str:
+        """Generate a meaningful response when no news articles are available"""
+        fallback_prompt = f"""
+The user requested: "{user_request}"
+However, no current news articles are available for category: {category}, country: {country}.
+
+Create a professional response that:
+1. Acknowledges the limitation
+2. Explains why this might happen (API limits, regional availability, etc.)
+3. Suggests alternative approaches or general insights about the requested topic/region
+4. Maintains a professional, helpful tone
+
+Keep it concise and actionable.
+"""
+        
+        try:
+            response = await self.model.generate_content_async(fallback_prompt)
+            return response.text
+        except Exception:
+            return f"I apologize, but I'm currently unable to fetch news for {category} from {country}. This could be due to API limitations or regional availability. Please try again later or consider a broader search term."
     
     def _extract_value(self, text: str, key: str) -> str:
         """Helper method to parse AI responses"""
@@ -127,12 +150,12 @@ KEYWORDS: [keywords, if any, else "None"]
                 continue
                 
             formatted.append(f"""
-            Article {i}:
-            Title: {article['title']}
-            Source: {article['source']['name']}
-            Description: {article['description']}
-            Published: {article['publishedAt']}
-            """)
+Article {i}:
+Title: {article['title']}
+Source: {article['source']['name']}
+Description: {article['description']}
+Published: {article['publishedAt']}
+""")
         
         return "\n".join(formatted)
 
@@ -148,7 +171,7 @@ async def test_news_agent():
         "Show me 3 sports headlines"
     ]
     
-    print("🧪 TESTING NEWS AGENT")
+    print("🧪 TESTING ENHANCED NEWS AGENT")
     print("=" * 50)
     
     for request in test_requests:
