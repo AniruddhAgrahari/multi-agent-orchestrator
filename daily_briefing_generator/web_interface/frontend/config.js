@@ -17,7 +17,7 @@ const isGitHubPages = window.location.hostname.includes('github.io');
 const API_CONFIG = {
     // Local development
     local: {
-        baseUrl: 'http://localhost:5000',
+        baseUrl: 'https://multi-agent-orchestrator.onrender.com',  // Temporarily using Render for testing
         apiBase: '/api/v1'
     },
     

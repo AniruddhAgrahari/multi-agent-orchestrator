@@ -33,20 +33,21 @@ class NewsAgent:
         """
         # Let AI analyze what kind of news the user wants
         analysis_prompt = f"""
-        Analyze this news request: "{user_request}"
-        
-        Extract:
-        1. Category (technology, business, health, sports, entertainment, general)
-        2. Country preference (us, in, uk, etc.)
-        3. Number of articles needed (default 5)
-        4. Specific topics or keywords
-        
-        Respond in this exact format:
-        CATEGORY: [category]
-        COUNTRY: [country code]
-        COUNT: [number]
-        KEYWORDS: [specific topics if any]
-        """
+Analyze this news request from the perspective of providing relevant and timely news for India: "{user_request}"
+
+Extract these parameters clearly:
+1. Category: technology, business, health, sports, entertainment, general. Use 'general' if no strong category is detected.
+2. Country preference: use valid country code (us, in, uk, etc.). Default to 'in' (India) if no country is specified.
+3. Number of articles to retrieve: default 5, maximum 10.
+4. Specific topics or keywords relevant to the request, especially focusing on India-related terms.
+
+Respond ONLY in this format exactly:
+CATEGORY: [category]
+COUNTRY: [country code]  
+COUNT: [number]
+KEYWORDS: [keywords, if any, else "None"]
+"""
+
         
         try:
             # Get AI analysis
