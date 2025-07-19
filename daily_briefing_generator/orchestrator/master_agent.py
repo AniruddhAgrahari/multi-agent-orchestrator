@@ -84,7 +84,7 @@ CRITICAL RULES:
 
 ### EXECUTIVE BRIEFING STRUCTURE
 1. **DETAILED WEATHER REPORT**: Weather-driven day planning insight
-2. **NEWS DIGEST**: Category-organized updates with business impact
+2. **NEWS DIGEST**: Category-organized updates 
 3. **ACTIONABLE INSIGHTS**: Weather + news correlation for decision making
 
 ### NATURAL TRANSITIONS
@@ -140,14 +140,26 @@ ALWAYS maintain professional tone even during service disruptions."""
         
         ANALYZE THIS REQUEST: "{user_request}"
         
-        Step 1: DELEGATION STRATEGY
+        Step 1: LOCATION DETECTION
+        Extract the EXACT location mentioned by the user (city, state, country). If a specific location is mentioned, ALL information (weather AND news) should be focused on that location and its immediate region.
+        
+        Step 2: DELEGATION STRATEGY
         Determine which agents to call:
         
-        Step 2: RESPOND IN THIS EXACT FORMAT:
+        LOCATION PRIORITY RULES:
+        - If user mentions "Delhi", focus ONLY on Delhi weather and India/Delhi-specific news
+        - If user mentions "Mumbai", focus ONLY on Mumbai weather and India/Mumbai-specific news  
+        - If user mentions "New York", focus ONLY on New York weather and US/New York-specific news
+        - If user mentions "London", focus ONLY on London weather and UK/London-specific news
+        - If NO specific location mentioned, use default location preferences
+        
+        Step 3: RESPOND IN THIS EXACT FORMAT:
         NEEDS_WEATHER: yes/no
-        WEATHER_LOCATION: [city name if mentioned, otherwise "default"]
+        WEATHER_LOCATION: [EXACT city name if mentioned, otherwise "default"]
+        LOCATION_COUNTRY: [country code - in for India, us for USA, uk for UK, etc.]
         NEEDS_NEWS: yes/no
         NEWS_CATEGORIES: [categories mentioned, otherwise "general"]
+        NEWS_LOCATION_FOCUS: [same location as weather for geo-specific news]
         DELEGATION_EXPLANATION: [brief explanation of your strategy]
         """
         
@@ -159,8 +171,10 @@ ALWAYS maintain professional tone even during service disruptions."""
             # Parse the analysis
             needs_weather = self._extract_value(analysis, "NEEDS_WEATHER:").lower() == "yes"
             weather_location = self._extract_value(analysis, "WEATHER_LOCATION:")
+            location_country = self._extract_value(analysis, "LOCATION_COUNTRY:")
             needs_news = self._extract_value(analysis, "NEEDS_NEWS:").lower() == "yes"
             news_categories = self._extract_value(analysis, "NEWS_CATEGORIES:")
+            news_location_focus = self._extract_value(analysis, "NEWS_LOCATION_FOCUS:")
             
             # Collect responses from agents
             responses = []
@@ -175,10 +189,16 @@ ALWAYS maintain professional tone even during service disruptions."""
                 responses.append(f"🌤️ **Weather Update:**\n{weather_response}")
             
             if needs_news:
-                if news_categories and news_categories != "general":
+                # Create location-aware news request
+                news_request = "Give me today's top news"
+                
+                if news_location_focus and news_location_focus != "default":
+                    if news_categories and news_categories != "general":
+                        news_request = f"Give me {news_categories} news specifically from {news_location_focus} region"
+                    else:
+                        news_request = f"Give me today's top news from {news_location_focus} and surrounding region"
+                elif news_categories and news_categories != "general":
                     news_request = f"Give me {news_categories} news"
-                else:
-                    news_request = "Give me today's top news"
                 
                 news_response = await self.news_agent.get_news_briefing(news_request)
                 responses.append(f"📰 **News Update:**\n{news_response}")
@@ -196,16 +216,24 @@ ALWAYS maintain professional tone even during service disruptions."""
             SOURCE DATA:
             {combined_content}
             
+            LOCATION CONTEXT: 
+            User Request: "{user_request}"
+            Target Location: {weather_location if weather_location != "default" else "General"}
+            Location Country: {location_country if location_country else "Multiple"}
+            
+            CRITICAL LOCATION RULE: 
+            If a specific location was mentioned (like Delhi, Mumbai, New York, etc.), ALL content must be geo-focused on that location and its immediate region. Do not mix global news with local weather - keep everything location-consistent.
+            
             CRITICAL: Your response must have EXACTLY these three sections in this EXACT order:
             
             ## Detailed Weather Report
-            [Write weather content here]
+            [Write weather content here - if location specified, focus ONLY on that location]
             
-            ## News Digest
-            [Write news content here]
+            ## News Digest  
+            [Write news content here - if location specified, prioritize news from that region/country]
             
             ## Actionable Insights
-            [Write insights content here]
+            [Write location-specific insights combining weather + regional news - if location specified, give advice relevant to that specific place]
             
             STOP IMMEDIATELY after the Actionable Insights section.
             
