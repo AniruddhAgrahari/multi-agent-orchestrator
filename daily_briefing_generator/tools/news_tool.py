@@ -1,10 +1,18 @@
-# tools/news_tool.py - Enhanced Multi-Source News Aggregator
+# tools/news_tool.py - Multi-API News Aggregator Integration
 import asyncio
 import aiohttp
 import os
+import sys
 from typing import Dict, List, Any
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+
+# Try to import the enhanced multi-API system
+try:
+    from enhanced_news_tool import MultiSourceNewsAggregator
+    ENHANCED_AVAILABLE = True
+except ImportError:
+    ENHANCED_AVAILABLE = False
 
 # Load environment variables
 load_dotenv()
@@ -17,15 +25,56 @@ async def get_news_data(
     max_articles: int = 5
 ) -> Dict[str, Any]:
     """
-    Enhanced news fetching with multiple strategies and sources for better coverage.
+    Enhanced news fetching with multiple APIs and RSS feeds for maximum coverage.
     
-    This tool now tries multiple approaches to get the best news coverage:
-    1. Original NewsAPI with improved parameters
-    2. Different search strategies 
-    3. Fallback countries and categories
-    4. Better error handling and article filtering
+    This system now supports:
+    - NewsAPI.org (original)
+    - GNews API (most reliable)  
+    - NewsData.io
+    - MediaStack
+    - Currents API
+    - WorldNews API
+    - NewsCatcher API
+    - RSS feeds (fallback)
+    
+    The more API keys you configure, the better the coverage!
     """
     
+    # Try enhanced multi-API system first
+    if ENHANCED_AVAILABLE:
+        try:
+            aggregator = MultiSourceNewsAggregator()
+            
+            # Map country codes to regions
+            region_map = {
+                "in": "india",
+                "us": "us", 
+                "gb": "uk",
+                "uk": "uk"
+            }
+            region = region_map.get(country, "global")
+            
+            result = await aggregator.get_comprehensive_news(category, region, max_articles)
+            
+            # Convert to expected format
+            return {
+                "status": result["status"],
+                "total_results": result["total_results"],
+                "articles": result["articles"],
+                "apis_used": result.get("apis_used", []),
+                "sources_used": result.get("sources_used", [])
+            }
+        except Exception as e:
+            print(f"Enhanced system error, falling back to basic: {e}")
+    
+    # Fallback to original enhanced NewsAPI system
+    return await _get_news_data_fallback(query, country, category, max_articles)
+
+
+async def _get_news_data_fallback(query: str, country: str, category: str, max_articles: int) -> Dict[str, Any]:
+    """
+    Fallback news system using enhanced NewsAPI strategies
+    """
     # Strategy 1: Try enhanced NewsAPI search
     result = await _fetch_with_enhanced_newsapi(query, country, category, max_articles)
     if result.get("status") == "success" and result.get("articles"):
@@ -59,7 +108,9 @@ async def get_news_data(
         "status": "error",
         "error": "No news articles found despite multiple search strategies",
         "articles": [],
-        "total_results": 0
+        "total_results": 0,
+        "apis_used": [],
+        "sources_used": []
     }
 
 
