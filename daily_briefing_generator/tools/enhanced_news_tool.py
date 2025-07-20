@@ -20,7 +20,7 @@ class MultiSourceNewsAggregator:
         self.gnews_api_key = os.getenv("GNEWS_API_KEY")  # gnews.io
         self.mediastack_api_key = os.getenv("MEDIASTACK_API_KEY")  # mediastack.com
         self.currents_api_key = os.getenv("CURRENTS_API_KEY")  # currentsapi.services
-        self.worldnews_api_key = os.getenv("WORLDNEWS_API_KEY")  # worldnewsapi.com
+        self.worldnews_api_key = os.getenv("WORLDNEWS_API_KEY") or os.getenv("WORLD_NEWS_API_KEY")  # worldnewsapi.com
         self.newscatcher_api_key = os.getenv("NEWSCATCHER_API_KEY")  # newscatcherapi.com
         
         # Enhanced RSS feeds for different categories and regions
