@@ -25,7 +25,7 @@ class NewsAgent:
         if not api_key:
             raise ValueError("Google AI API key not found. Please set GOOGLE_AI_API_KEY in your .env file")
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.model = genai.GenerativeModel('gemini-flash-lite-latest')
         
     async def get_news_briefing(self, user_request: str) -> str:
         """

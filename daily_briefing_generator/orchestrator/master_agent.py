@@ -116,7 +116,7 @@ Please try again in a few minutes for complete briefing coverage."
 
 ALWAYS maintain professional tone even during service disruptions."""
         
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.model = genai.GenerativeModel('gemini-flash-lite-latest')
         
         # Initialize specialized agents
         self.weather_agent = WeatherAgent()
