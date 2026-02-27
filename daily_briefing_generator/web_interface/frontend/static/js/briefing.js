@@ -76,7 +76,7 @@ async function checkApiHealth() {
     }
     
     try {
-        const healthUrl = `${API_BASE_URL}/health`;
+        const healthUrl = `${API_BASE_URL}${API_BASE}/health`;
         const response = await fetch(healthUrl, {
             method: 'GET',
             headers: {
