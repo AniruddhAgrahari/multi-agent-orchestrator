@@ -35,8 +35,9 @@ async def lifespan(app: FastAPI):
         master_agent = MasterAgent()
         print("✅ Master Agent initialized successfully")
     except Exception as e:
-        print(f"❌ Failed to initialize Master Agent: {e}")
-        raise
+        print(f"⚠️ Failed to initialize Master Agent: {e}")
+        print("Server will start but briefing generation will fail until API keys are configured.")
+        master_agent = None
     
     yield
     
@@ -84,9 +85,39 @@ async def read_root(request: Request):
 @app.get("/briefing", response_class=HTMLResponse) 
 async def briefing_interface(request: Request):
     """Serve the briefing interface"""
-    with open("../frontend/index.html", "r") as f:
-        html_content = f.read()
-    return HTMLResponse(content=html_content)
+    try:
+        with open("../frontend/index.html", "r", encoding="utf-8") as f:
+            html_content = f.read()
+        return HTMLResponse(content=html_content)
+    except FileNotFoundError:
+        return HTMLResponse(content="<h1>Daily Briefing Agent</h1><p>Frontend file not found</p>", status_code=404)
+
+@app.get("/config.js")
+async def serve_config_js():
+    """Serve the frontend config.js file (not inside /static/, so needs explicit route)"""
+    from fastapi.responses import FileResponse
+    import os
+    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "config.js"))
+    if os.path.exists(config_path):
+        return FileResponse(config_path, media_type="application/javascript")
+    # Fallback: serve inline config pointing to the Render URL
+    base_url = "https://multi-agent-orchestrator.onrender.com"
+    inline_config = f"""
+// Auto-generated config fallback
+window.BRIEFING_CONFIG = {{
+    API_BASE_URL: '{base_url}',
+    API_BASE: '/api/v1',
+    BRIEFING_ENDPOINT: '{base_url}/api/v1/briefing',
+    ENABLE_HISTORY: true,
+    ENABLE_DARK_MODE: true,
+    ENABLE_API_DOCS: true,
+    MAX_HISTORY_ITEMS: 50,
+    AUTO_SAVE_HISTORY: true,
+    DEBUG_MODE: false
+}};
+"""
+    from fastapi.responses import Response
+    return Response(content=inline_config, media_type="application/javascript")
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
