@@ -267,7 +267,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 - 🐛 **Bug Reports**: [Open an issue](https://github.com/your-username/daily-briefing-agent/issues)
 - 💡 **Feature Requests**: [Discussions](https://github.com/your-username/daily-briefing-agent/discussions)
-- 📧 **Contact**: your-email@example.com
+- 📧 **Contact**: agraharianiruddha@gmail.com
 
 ## 🗺️ Roadmap
 
