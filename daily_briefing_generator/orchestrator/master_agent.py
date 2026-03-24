@@ -189,18 +189,21 @@ ALWAYS maintain professional tone even during service disruptions."""
                 responses.append(f"🌤️ **Weather Update:**\n{weather_response}")
             
             if needs_news:
-                # Create location-aware news request
-                news_request = "Give me today's top news"
-                
-                if news_location_focus and news_location_focus != "default":
-                    if news_categories and news_categories != "general":
-                        news_request = f"Give me {news_categories} news specifically from {news_location_focus} region"
-                    else:
-                        news_request = f"Give me today's top news from {news_location_focus} and surrounding region"
-                elif news_categories and news_categories != "general":
-                    news_request = f"Give me {news_categories} news"
-                
-                news_response = await self.news_agent.get_news_briefing(news_request)
+                # CRITICAL FIX: Pass structured parameters instead of re-parsing strings
+                # This ensures location context is preserved and not lost in translation
+
+                # Determine the location for news (use weather location for consistency)
+                news_location = news_location_focus if news_location_focus and news_location_focus != "default" else None
+                if not news_location and weather_location and weather_location != "default":
+                    news_location = weather_location
+
+                # Pass structured parameters directly to news agent
+                news_response = await self.news_agent.get_news_briefing(
+                    user_request=user_request,
+                    location=news_location,
+                    country=location_country if location_country else None,
+                    category=news_categories if news_categories and news_categories != "general" else None
+                )
                 responses.append(f"📰 **News Update:**\n{news_response}")
             
             if not responses:
@@ -503,18 +506,21 @@ ALWAYS maintain professional tone even during service disruptions."""
             # News agent with error recovery
             if needs_news:
                 try:
-                    if news_categories and news_categories != "general":
-                        news_request = f"Give me {news_categories} news"
-                    else:
-                        news_request = "Give me today's top news"
-                    
+                    # CRITICAL FIX: Pass structured parameters for location-specific news
+                    news_location = weather_location if weather_location and weather_location != "default" else None
+
                     news_response = await asyncio.wait_for(
-                        self.news_agent.get_news_briefing(news_request),
+                        self.news_agent.get_news_briefing(
+                            user_request=user_request,
+                            location=news_location,
+                            country=None,  # Let news agent determine from request
+                            category=news_categories if news_categories and news_categories != "general" else None
+                        ),
                         timeout=15
                     )
                     responses.append(f"📰 **News Update:**\n{news_response}")
                     logger.info("News agent successful")
-                    
+
                 except Exception as e:
                     logger.error(f"News agent failed: {str(e)}")
                     failed_services.append("news")

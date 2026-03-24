@@ -27,46 +27,84 @@ class NewsAgent:
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-flash-lite-latest')
         
-    async def get_news_briefing(self, user_request: str) -> str:
+    async def get_news_briefing(
+        self,
+        user_request: str,
+        location: str = None,
+        country: str = None,
+        category: str = None
+    ) -> str:
         """
         Enhanced news curation with robust fallback strategies.
         This agent understands context and filters content appropriately.
+
+        Args:
+            user_request: Natural language request from user
+            location: Specific city/region (e.g., "Mumbai", "London") - makes news location-specific
+            country: Country code (e.g., "in", "us", "uk") - filters news by country
+            category: News category (e.g., "technology", "business")
         """
-        # Let AI analyze what kind of news the user wants
-        analysis_prompt = f"""
-Analyze this news request from the perspective of providing relevant and timely news for India: "{user_request}"
+        # If structured parameters provided, use them directly (no re-parsing needed)
+        if location or country or category:
+            final_category = category or "general"
+            final_country = country or "us"
+            final_location = location or ""
+            count = 5
+        else:
+            # Fall back to AI analysis if no structured parameters
+            analysis_prompt = f"""
+Analyze this news request: "{user_request}"
 
 Extract these parameters clearly:
 1. Category: technology, business, health, sports, entertainment, general. Use 'general' if no strong category is detected.
-2. Country preference: use valid country code (us, in, uk, etc.). Default to 'in' (India) if no country is specified.
-3. Number of articles to retrieve: default 5, maximum 10.
-4. Specific topics or keywords relevant to the request, especially focusing on India-related terms.
+2. Country preference: use valid country code (us, in, uk, etc.). Extract from request, do not default.
+3. Specific location: city or region name if mentioned (e.g., Mumbai, London, New York)
+4. Number of articles to retrieve: default 5, maximum 10.
 
 Respond ONLY in this format exactly:
 CATEGORY: [category]
-COUNTRY: [country code]  
+COUNTRY: [country code or "none"]
+LOCATION: [location name or "none"]
 COUNT: [number]
-KEYWORDS: [keywords, if any, else "None"]
 """
-        
+
+            try:
+                # Get AI analysis
+                response = await self.model.generate_content_async(analysis_prompt)
+                analysis = response.text
+
+                # Parse the analysis
+                final_category = self._extract_value(analysis, "CATEGORY:") or "general"
+                extracted_country = self._extract_value(analysis, "COUNTRY:")
+                extracted_location = self._extract_value(analysis, "LOCATION:")
+
+                # Only use defaults if truly not specified
+                final_country = extracted_country if extracted_country and extracted_country not in ["unspecified", "unknown", "none"] else "us"
+                final_location = extracted_location if extracted_location and extracted_location not in ["unspecified", "unknown", "none"] else ""
+                count = int(self._extract_value(analysis, "COUNT:") or "5")
+
+            except Exception as e:
+                # Fallback to safe defaults on analysis error
+                final_category = "general"
+                final_country = "us"
+                final_location = ""
+                count = 5
+
         try:
-            # Get AI analysis
-            response = await self.model.generate_content_async(analysis_prompt)
-            analysis = response.text
-            
-            # Parse the analysis
-            category = self._extract_value(analysis, "CATEGORY:") or "general"
-            country = self._extract_value(analysis, "COUNTRY:")
-            # Handle unspecified or invalid country codes
-            if not country or country in ["unspecified", "unknown", "none"]:
-                country = "us"  # Default to US
-            count = int(self._extract_value(analysis, "COUNT:") or "5")
-            
+            # Build location-aware search query
+            # CRITICAL FIX: Include location in query for geo-specific results
+            if final_location:
+                # Location-specific query: "Mumbai technology" or "London business"
+                search_query = f"{final_location} {final_category}"
+            else:
+                # Category-only query if no location
+                search_query = final_category
+
             # Fetch news data using enhanced tool with fallbacks
             news_data = await get_news_data(
-                query=category,  # Use category as query
-                category=category,
-                country=country,
+                query=search_query,  # Now includes location for geo-specific results!
+                category=final_category,
+                country=final_country,
                 max_articles=min(count, 10)  # Respect rate limits
             )
             
@@ -74,49 +112,63 @@ KEYWORDS: [keywords, if any, else "None"]
             if news_data.get("status") == "error" or "error" in news_data:
                 error_msg = news_data.get("error", "Unknown error occurred")
                 # Try to provide a fallback response based on the request
-                fallback_response = await self._generate_fallback_response(user_request, category, country)
+                fallback_response = await self._generate_fallback_response(
+                    user_request, final_category, final_country, final_location
+                )
                 return fallback_response
-            
+
             # Check if we have valid articles
             articles = news_data.get("articles", [])
             if not articles:
                 # Generate a meaningful response even without articles
-                fallback_response = await self._generate_fallback_response(user_request, category, country)
+                fallback_response = await self._generate_fallback_response(
+                    user_request, final_category, final_country, final_location
+                )
                 return fallback_response
-            
+
             # Let AI create a curated briefing with enhanced context
             articles_summary = self._format_articles_for_ai(articles)
-            
+
+            # Build location context for briefing
+            location_context = f"Location: {final_location}, Country: {final_country.upper()}" if final_location else f"Country: {final_country.upper()}"
+
             briefing_prompt = f"""
 Create a professional news briefing based on these articles:
 
 {articles_summary}
 
 User's original request: "{user_request}"
-Request Context: Category={category}, Country={country}
+Request Context: Category={final_category}, {location_context}
 
 Guidelines:
-- Start with a brief overview mentioning the region/category focus
+- Start with a brief overview mentioning the {"specific location (" + final_location + ")" if final_location else "region"} and category focus
 - Highlight the most important stories with business implications
+- {"Prioritize stories directly related to " + final_location + " or its immediate region" if final_location else "Focus on stories relevant to the " + final_country.upper() + " audience"}
 - Keep it concise but informative
-- If articles seem limited, acknowledge this but focus on what's available
 - Group related stories together
-- End with key takeaways relevant to the user's location/interests
+- End with key takeaways relevant to {"the " + final_location + " region" if final_location else "the audience's interests"}
 
-Make it sound like a professional news briefing for {country.upper() if country else 'international'} audience.
+Make it sound like a professional news briefing {"for " + final_location if final_location else "for " + final_country.upper() + " audience"}.
 """
-            
+
             final_response = await self.model.generate_content_async(briefing_prompt)
             return final_response.text
             
         except Exception as e:
             return f"I encountered an error processing your news request: {str(e)}"
     
-    async def _generate_fallback_response(self, user_request: str, category: str, country: str) -> str:
+    async def _generate_fallback_response(
+        self,
+        user_request: str,
+        category: str,
+        country: str,
+        location: str = None
+    ) -> str:
         """Generate a meaningful response when no news articles are available"""
+        location_info = f"location: {location}, " if location else ""
         fallback_prompt = f"""
 The user requested: "{user_request}"
-However, no current news articles are available for category: {category}, country: {country}.
+However, no current news articles are available for {location_info}category: {category}, country: {country}.
 
 Create a professional response that:
 1. Acknowledges the limitation
@@ -126,12 +178,13 @@ Create a professional response that:
 
 Keep it concise and actionable.
 """
-        
+
         try:
             response = await self.model.generate_content_async(fallback_prompt)
             return response.text
         except Exception:
-            return f"I apologize, but I'm currently unable to fetch news for {category} from {country}. This could be due to API limitations or regional availability. Please try again later or consider a broader search term."
+            location_str = f" in {location}" if location else ""
+            return f"I apologize, but I'm currently unable to fetch news for {category}{location_str} from {country}. This could be due to API limitations or regional availability. Please try again later or consider a broader search term."
     
     def _extract_value(self, text: str, key: str) -> str:
         """Helper method to parse AI responses"""
